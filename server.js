@@ -1,6 +1,14 @@
 import express from "express";
+import cors from "cors";
 
 const app = express();
+
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"]
+}));
+
 app.use(express.json());
 
 app.post("/api/chat", async (req, res) => {
@@ -31,18 +39,24 @@ If crisis language appears, prioritize safety and do not ask probing questions.`
     });
 
     const data = await response.json();
-    const text = data.output?.[0]?.content?.[0]?.text || "I'm here to help. Could you tell me a little more?";
+
+    const text =
+      data.output?.[0]?.content?.[0]?.text ||
+      "I'm here to help. Could you tell me a little more?";
 
     res.json({
       reply: text,
       category: "therapy",
-      next_steps: ["Consider talking to a therapist", "Reach out to a trusted person"],
+      next_steps: [
+        "Consider talking to a therapist",
+        "Reach out to a trusted person"
+      ],
       follow_up_question: "Would you like help finding a provider?",
       show_crisis_banner: false
     });
-
   } catch (error) {
-    res.json({
+    console.error(error);
+    res.status(500).json({
       reply: "Something went wrong. Try again.",
       category: "community_resources",
       next_steps: [],
@@ -52,6 +66,11 @@ If crisis language appears, prioritize safety and do not ask probing questions.`
   }
 });
 
-app.listen(3000, () => {
-  console.log("Server running");
+app.get("/", (req, res) => {
+  res.send("API is running.");
+});
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
