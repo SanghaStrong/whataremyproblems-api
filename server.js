@@ -11,6 +11,10 @@ app.use(cors({
 
 app.use(express.json());
 
+app.get("/", (req, res) => {
+  res.send("API is running.");
+});
+
 app.post("/api/chat", async (req, res) => {
   const conversation = Array.isArray(req.body.conversation) ? req.body.conversation : [];
   const userMessage = String(req.body.message || "");
@@ -28,7 +32,8 @@ app.post("/api/chat", async (req, res) => {
           {
             role: "system",
             content: `You are a calm, supportive mental health navigation assistant.
-Do not diagnose. Ask one helpful follow-up question at a time.
+Do not diagnose.
+Ask one helpful follow-up question at a time.
 If the user seems hesitant, reduce pressure and redirect.
 If crisis language appears, prioritize safety and do not ask probing questions.`
           },
@@ -39,7 +44,6 @@ If crisis language appears, prioritize safety and do not ask probing questions.`
     });
 
     const data = await response.json();
-
     const text =
       data.output?.[0]?.content?.[0]?.text ||
       "I'm here to help. Could you tell me a little more?";
@@ -64,10 +68,6 @@ If crisis language appears, prioritize safety and do not ask probing questions.`
       show_crisis_banner: false
     });
   }
-});
-
-app.get("/", (req, res) => {
-  res.send("API is running.");
 });
 
 const port = process.env.PORT || 3000;
