@@ -15,6 +15,51 @@ app.get("/", (req, res) => {
   res.send("API is running.");
 });
 
+function buildSanghaRedirect(userMessage, parsed = {}) {
+  const params = new URLSearchParams();
+
+  params.set("need", userMessage);
+
+  if (parsed.category === "therapy") {
+    params.set("type", "provider");
+    params.set("mode", "Telehealth");
+  } else if (parsed.category === "psychiatry") {
+    params.set("type", "provider");
+    params.set("specialty", "Medication Support");
+    params.set("mode", "Telehealth");
+  } else if (parsed.category === "support_group") {
+    params.set("type", "organization");
+    params.set("specialty", "Support Groups");
+  } else if (parsed.category === "community_resources") {
+    params.set("type", "organization");
+    params.set("specialty", "Community Mental Health");
+  } else if (parsed.category === "wellness_coaching") {
+    params.set("type", "provider");
+    params.set("mode", "Telehealth");
+  } else if (parsed.category === "crisis_support") {
+    params.set("type", "organization");
+  } else {
+    params.set("type", "provider");
+    params.set("mode", "Telehealth");
+  }
+
+  if (parsed.category === "therapy" && /anx|panic|worry|overwhelm|stressed/i.test(userMessage)) {
+    params.set("specialty", "Anxiety");
+  } else if (parsed.category === "therapy" && /depress|sad|hopeless|empty/i.test(userMessage)) {
+    params.set("specialty", "Depression");
+  } else if (/trauma|ptsd|abuse/i.test(userMessage)) {
+    params.set("specialty", "Trauma");
+  } else if (/grief|loss|mourning/i.test(userMessage)) {
+    params.set("specialty", "Grief");
+  } else if (/burnout|burned out|exhausted/i.test(userMessage)) {
+    params.set("specialty", "Burnout");
+  }
+
+  params.set("autorun", "1");
+
+  return `https://sanghastrong.com/?${params.toString()}`;
+}
+
 app.post("/api/chat", async (req, res) => {
   const conversation = Array.isArray(req.body.conversation) ? req.body.conversation : [];
   const userMessage = String(req.body.message || "").trim();
@@ -27,7 +72,8 @@ app.post("/api/chat", async (req, res) => {
       reply: "Please share a little about what has been going on.",
       follow_up_question: "What feels hardest right now?",
       next_steps: [],
-      show_crisis_banner: false
+      show_crisis_banner: false,
+      redirect_url: buildSanghaRedirect("")
     });
   }
 
@@ -156,7 +202,8 @@ Return valid JSON only.`
           "Mention how long this has been going on",
           "Share whether it affects sleep, work, or relationships"
         ],
-        show_crisis_banner: false
+        show_crisis_banner: false,
+        redirect_url: buildSanghaRedirect(userMessage)
       });
     }
 
@@ -175,7 +222,8 @@ Return valid JSON only.`
           "Share the main symptom or emotion",
           "Mention how long you’ve felt this way"
         ],
-        show_crisis_banner: false
+        show_crisis_banner: false,
+        redirect_url: buildSanghaRedirect(userMessage)
       });
     }
 
@@ -186,7 +234,8 @@ Return valid JSON only.`
       reply: parsed.reply || "I’m here to help.",
       follow_up_question: parsed.follow_up_question || "",
       next_steps: Array.isArray(parsed.next_steps) ? parsed.next_steps : [],
-      show_crisis_banner: Boolean(parsed.show_crisis_banner)
+      show_crisis_banner: Boolean(parsed.show_crisis_banner),
+      redirect_url: buildSanghaRedirect(userMessage, parsed)
     });
 
   } catch (error) {
@@ -202,7 +251,8 @@ Return valid JSON only.`
         "Talk to a trusted person",
         "Reach out to a local provider or support organization"
       ],
-      show_crisis_banner: false
+      show_crisis_banner: false,
+      redirect_url: buildSanghaRedirect(userMessage)
     });
   }
 });
