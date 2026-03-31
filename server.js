@@ -17,13 +17,20 @@ app.get("/", (req, res) => {
 
 function buildSanghaRedirect(userMessage, parsed = {}) {
   const params = new URLSearchParams();
+  const text = String(userMessage || "").toLowerCase();
 
-  const text = userMessage.toLowerCase();
+  params.set("need", userMessage || "");
 
-  // Always include original message
-  params.set("need", userMessage);
+  // Event / community intent gets priority
+  if (/event|events|group|meet people|community|workshop|webinar|support group|peer group|connect with others/i.test(text)) {
+    params.set("type", "event");
+    params.set("specialty", "Support Groups");
+    params.set("mode", "Virtual Event");
+    params.set("autorun", "1");
+    return `https://sanghastrong.com/?${params.toString()}`;
+  }
 
-  // -------- TYPE LOGIC --------
+  // Category-based routing
   if (parsed.category === "therapy") {
     params.set("type", "provider");
   } else if (parsed.category === "psychiatry") {
@@ -34,6 +41,7 @@ function buildSanghaRedirect(userMessage, parsed = {}) {
     params.set("specialty", "Support Groups");
   } else if (parsed.category === "community_resources") {
     params.set("type", "organization");
+    params.set("specialty", "Community Mental Health");
   } else if (parsed.category === "wellness_coaching") {
     params.set("type", "provider");
     params.set("specialty", "Wellness Coaching");
@@ -44,43 +52,35 @@ function buildSanghaRedirect(userMessage, parsed = {}) {
     params.set("type", "provider");
   }
 
-  // -------- SPECIALTY DETECTION --------
+  // Specialty detection
   if (/anx|panic|worry|overwhelm|stress/i.test(text)) {
     params.set("specialty", "Anxiety");
   }
-
   if (/depress|sad|hopeless|empty|numb/i.test(text)) {
     params.set("specialty", "Depression");
   }
-
   if (/trauma|ptsd|abuse|flashback/i.test(text)) {
     params.set("specialty", "Trauma");
   }
-
   if (/grief|loss|mourning/i.test(text)) {
     params.set("specialty", "Grief");
   }
-
   if (/burnout|exhausted|drained/i.test(text)) {
     params.set("specialty", "Burnout");
   }
-
   if (/relationship|marriage|partner|divorce/i.test(text)) {
     params.set("specialty", "Relationships");
   }
-
   if (/sleep|insomnia/i.test(text)) {
     params.set("specialty", "Sleep Issues");
   }
 
-  // -------- MODE --------
   params.set("mode", "Telehealth");
-
-  // -------- AUTO SEARCH --------
   params.set("autorun", "1");
 
   return `https://sanghastrong.com/?${params.toString()}`;
 }
+
 app.post("/api/chat", async (req, res) => {
   const conversation = Array.isArray(req.body.conversation) ? req.body.conversation : [];
   const userMessage = String(req.body.message || "").trim();
@@ -121,6 +121,7 @@ Your job:
 - choose one category
 - suggest 2 to 4 practical next steps
 - if the user seems hesitant, soften and redirect
+- if the user asks about meeting people, support groups, community, or events, route toward support_group or community_resources rather than repeating generic prompts
 - if there is crisis language, prioritize safety
 
 Allowed categories:
@@ -209,19 +210,29 @@ Return valid JSON only.`
     const raw = await response.json();
     console.log("OPENAI RAW RESPONSE:", JSON.stringify(raw, null, 2));
 
-    const text = raw.output?.[0]?.content?.[0]?.text;
+    const text =
+      raw.output_text ||
+      raw.output?.map(item =>
+        (item.content || [])
+          .map(part => {
+            if (typeof part.text === "string") return part.text;
+            if (part.text && typeof part.text.value === "string") return part.text.value;
+            return "";
+          })
+          .join("")
+      ).join("").trim();
 
     if (!text) {
       return res.json({
         category: "community_resources",
         urgency: "low",
         conversation_mode: "redirect",
-        reply: "I’m here with you. Could you share a little more about what you’ve been experiencing lately?",
-        follow_up_question: "What has been bothering you the most?",
+        reply: "It sounds like you may be looking for both support and connection.",
+        follow_up_question: "Would you like me to guide you toward a provider, community resources, or events where you can meet others?",
         next_steps: [
-          "Describe your main feeling in your own words",
-          "Mention how long this has been going on",
-          "Share whether it affects sleep, work, or relationships"
+          "Explore support groups or community events",
+          "Look for a therapist or counselor if symptoms are ongoing",
+          "Consider whether connection, treatment, or both feel most helpful right now"
         ],
         show_crisis_banner: false,
         redirect_url: buildSanghaRedirect(userMessage)
@@ -233,15 +244,18 @@ Return valid JSON only.`
       parsed = JSON.parse(text);
     } catch (parseError) {
       console.error("JSON PARSE ERROR:", parseError);
+      console.error("TEXT THAT FAILED TO PARSE:", text);
+
       return res.json({
         category: "community_resources",
         urgency: "low",
         conversation_mode: "redirect",
-        reply: text || "I’m here to help.",
-        follow_up_question: "Can you tell me a little more about what feels hardest right now?",
+        reply: "It sounds like this has been going on for a while, and you may be looking for both support and connection.",
+        follow_up_question: "Would you like me to guide you toward a provider, community resources, or events where you can meet others?",
         next_steps: [
-          "Share the main symptom or emotion",
-          "Mention how long you’ve felt this way"
+          "Explore support groups or community events",
+          "Look for a therapist or counselor if symptoms are ongoing",
+          "Consider whether connection, treatment, or both feel most helpful right now"
         ],
         show_crisis_banner: false,
         redirect_url: buildSanghaRedirect(userMessage)
@@ -266,7 +280,7 @@ Return valid JSON only.`
       urgency: "low",
       conversation_mode: "redirect",
       reply: "Sorry, something went wrong on the server. Please try again in a moment.",
-      follow_up_question: "What has been weighing on you most lately?",
+      follow_up_question: "Would you like support from a provider, a support group, or community resources?",
       next_steps: [
         "Try again in a moment",
         "Talk to a trusted person",
