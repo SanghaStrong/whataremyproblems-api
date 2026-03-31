@@ -18,48 +18,69 @@ app.get("/", (req, res) => {
 function buildSanghaRedirect(userMessage, parsed = {}) {
   const params = new URLSearchParams();
 
+  const text = userMessage.toLowerCase();
+
+  // Always include original message
   params.set("need", userMessage);
 
+  // -------- TYPE LOGIC --------
   if (parsed.category === "therapy") {
     params.set("type", "provider");
-    params.set("mode", "Telehealth");
   } else if (parsed.category === "psychiatry") {
     params.set("type", "provider");
     params.set("specialty", "Medication Support");
-    params.set("mode", "Telehealth");
   } else if (parsed.category === "support_group") {
     params.set("type", "organization");
     params.set("specialty", "Support Groups");
   } else if (parsed.category === "community_resources") {
     params.set("type", "organization");
-    params.set("specialty", "Community Mental Health");
   } else if (parsed.category === "wellness_coaching") {
     params.set("type", "provider");
-    params.set("mode", "Telehealth");
+    params.set("specialty", "Wellness Coaching");
   } else if (parsed.category === "crisis_support") {
     params.set("type", "organization");
+    params.set("urgency", "high");
   } else {
     params.set("type", "provider");
-    params.set("mode", "Telehealth");
   }
 
-  if (parsed.category === "therapy" && /anx|panic|worry|overwhelm|stressed/i.test(userMessage)) {
+  // -------- SPECIALTY DETECTION --------
+  if (/anx|panic|worry|overwhelm|stress/i.test(text)) {
     params.set("specialty", "Anxiety");
-  } else if (parsed.category === "therapy" && /depress|sad|hopeless|empty/i.test(userMessage)) {
+  }
+
+  if (/depress|sad|hopeless|empty|numb/i.test(text)) {
     params.set("specialty", "Depression");
-  } else if (/trauma|ptsd|abuse/i.test(userMessage)) {
+  }
+
+  if (/trauma|ptsd|abuse|flashback/i.test(text)) {
     params.set("specialty", "Trauma");
-  } else if (/grief|loss|mourning/i.test(userMessage)) {
+  }
+
+  if (/grief|loss|mourning/i.test(text)) {
     params.set("specialty", "Grief");
-  } else if (/burnout|burned out|exhausted/i.test(userMessage)) {
+  }
+
+  if (/burnout|exhausted|drained/i.test(text)) {
     params.set("specialty", "Burnout");
   }
 
+  if (/relationship|marriage|partner|divorce/i.test(text)) {
+    params.set("specialty", "Relationships");
+  }
+
+  if (/sleep|insomnia/i.test(text)) {
+    params.set("specialty", "Sleep Issues");
+  }
+
+  // -------- MODE --------
+  params.set("mode", "Telehealth");
+
+  // -------- AUTO SEARCH --------
   params.set("autorun", "1");
 
   return `https://sanghastrong.com/?${params.toString()}`;
 }
-
 app.post("/api/chat", async (req, res) => {
   const conversation = Array.isArray(req.body.conversation) ? req.body.conversation : [];
   const userMessage = String(req.body.message || "").trim();
