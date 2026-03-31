@@ -123,6 +123,9 @@ Your job:
 - if the user seems hesitant, soften and redirect
 - if the user asks about meeting people, support groups, community, or events, route toward support_group or community_resources rather than repeating generic prompts
 - if there is crisis language, prioritize safety
+- do not use route_now until you have enough clarity about the likely type of support the user needs
+- during early conversation, prefer explore or deepen
+- only use route_now when you can reasonably suggest a specific next-step category such as therapist, psychiatry, support group, community resource, wellness coaching, or event/community connection
 
 Allowed categories:
 therapy
