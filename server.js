@@ -15,11 +15,54 @@ app.get("/", (req, res) => {
   res.send("API is running.");
 });
 
+function titleCase(str) {
+  return String(str || "")
+    .toLowerCase()
+    .split(" ")
+    .filter(Boolean)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 function buildSanghaRedirect(userMessage, parsed = {}) {
   const params = new URLSearchParams();
   const text = String(userMessage || "").toLowerCase();
 
-  params.set("need", userMessage || "");
+  let cleanNeed = "";
+
+  if (/anx|panic|worry|overwhelm|stress/i.test(text)) cleanNeed = "Anxiety";
+  else if (/depress|sad|hopeless|empty|numb/i.test(text)) cleanNeed = "Depression";
+  else if (/trauma|ptsd|abuse|flashback/i.test(text)) cleanNeed = "Trauma";
+  else if (/grief|loss|mourning/i.test(text)) cleanNeed = "Grief";
+  else if (/burnout|exhausted|drained/i.test(text)) cleanNeed = "Burnout";
+  else if (/relationship|marriage|partner|divorce/i.test(text)) cleanNeed = "Relationships";
+  else if (/sleep|insomnia/i.test(text)) cleanNeed = "Sleep Issues";
+  else if (/lonely|alone|isolated|isolation|disconnected/i.test(text)) cleanNeed = "Loneliness";
+  else if (/scared|fear|afraid|unsafe/i.test(text)) cleanNeed = "Fear";
+  else if (/event|events|group|meet people|community|workshop|webinar|support group|peer group|connect with others/i.test(text)) cleanNeed = "Support Groups";
+
+  if (!cleanNeed) {
+    if (parsed.category === "therapy") cleanNeed = "Therapy Support";
+    else if (parsed.category === "psychiatry") cleanNeed = "Medication Support";
+    else if (parsed.category === "support_group") cleanNeed = "Support Groups";
+    else if (parsed.category === "community_resources") cleanNeed = "Community Resources";
+    else if (parsed.category === "wellness_coaching") cleanNeed = "Wellness Coaching";
+    else if (parsed.category === "crisis_support") cleanNeed = "Urgent Support";
+  }
+
+  if (!cleanNeed) {
+    const simplified = String(userMessage || "")
+      .replace(/^i feel\s+/i, "")
+      .replace(/^i have\s+/i, "")
+      .replace(/^i am\s+/i, "")
+      .replace(/for\s+\d+\s+\w+/i, "")
+      .trim();
+
+    cleanNeed = titleCase(simplified || "Support");
+  }
+
+  params.set("need", cleanNeed);
+  params.set("context", String(userMessage || ""));
 
   // Event / community intent gets priority
   if (/event|events|group|meet people|community|workshop|webinar|support group|peer group|connect with others/i.test(text)) {
@@ -74,7 +117,18 @@ function buildSanghaRedirect(userMessage, parsed = {}) {
   if (/sleep|insomnia/i.test(text)) {
     params.set("specialty", "Sleep Issues");
   }
+  if (/lonely|alone|isolated|isolation|disconnected/i.test(text)) {
+    params.set("specialty", "Community Mental Health");
+  }
+  if (/scared|fear|afraid|unsafe/i.test(text)) {
+    params.set("specialty", "Community Mental Health");
+  }
 
+  params.set("mode", "Telehealth");
+  params.set("autorun", "1");
+
+  return `https://sanghastrong.com/?${params.toString()}`;
+}
   params.set("mode", "Telehealth");
   params.set("autorun", "1");
 
