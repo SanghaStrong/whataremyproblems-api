@@ -64,7 +64,6 @@ function buildSanghaRedirect(userMessage, parsed = {}) {
   params.set("need", cleanNeed);
   params.set("context", String(userMessage || ""));
 
-  // Event / community intent gets priority
   if (/event|events|group|meet people|community|workshop|webinar|support group|peer group|connect with others/i.test(text)) {
     params.set("type", "event");
     params.set("specialty", "Support Groups");
@@ -73,7 +72,6 @@ function buildSanghaRedirect(userMessage, parsed = {}) {
     return `https://sanghastrong.com/?${params.toString()}`;
   }
 
-  // Category-based routing
   if (parsed.category === "therapy") {
     params.set("type", "provider");
   } else if (parsed.category === "psychiatry") {
@@ -95,7 +93,6 @@ function buildSanghaRedirect(userMessage, parsed = {}) {
     params.set("type", "provider");
   }
 
-  // Specialty detection
   if (/anx|panic|worry|overwhelm|stress/i.test(text)) {
     params.set("specialty", "Anxiety");
   }
@@ -124,11 +121,6 @@ function buildSanghaRedirect(userMessage, parsed = {}) {
     params.set("specialty", "Community Mental Health");
   }
 
-  params.set("mode", "Telehealth");
-  params.set("autorun", "1");
-
-  return `https://sanghastrong.com/?${params.toString()}`;
-}
   params.set("mode", "Telehealth");
   params.set("autorun", "1");
 
@@ -283,7 +275,7 @@ Return valid JSON only.`
       return res.json({
         category: "community_resources",
         urgency: "low",
-        conversation_mode: "redirect",
+        conversation_mode: "deepen",
         reply: "It sounds like you may be looking for both support and connection.",
         follow_up_question: "Would you like me to guide you toward a provider, community resources, or events where you can meet others?",
         next_steps: [
@@ -306,7 +298,7 @@ Return valid JSON only.`
       return res.json({
         category: "community_resources",
         urgency: "low",
-        conversation_mode: "redirect",
+        conversation_mode: "deepen",
         reply: "It sounds like this has been going on for a while, and you may be looking for both support and connection.",
         follow_up_question: "Would you like me to guide you toward a provider, community resources, or events where you can meet others?",
         next_steps: [
@@ -335,7 +327,7 @@ Return valid JSON only.`
     res.status(500).json({
       category: "community_resources",
       urgency: "low",
-      conversation_mode: "redirect",
+      conversation_mode: "deepen",
       reply: "Sorry, something went wrong on the server. Please try again in a moment.",
       follow_up_question: "Would you like support from a provider, a support group, or community resources?",
       next_steps: [
